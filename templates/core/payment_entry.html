@@ -583,24 +583,36 @@
     // DATE VALIDATION
     // ============================================
     function validateDateInput() {
-        const input = elements.paidDateInput;
-        if (!input || !input.value) return true;
+    const input = elements.paidDateInput;
+    if (!input || !input.value) return true;
+    
+    const selectedDate = new Date(input.value);
+    const now = new Date();
+    
+    // Normalize both dates to midnight
+    const selectedMidnight = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    if (selectedMidnight > todayMidnight) {
+        // Calculate days in future
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const daysInFuture = Math.floor((selectedMidnight - todayMidnight) / msPerDay);
         
-        const selectedDate = new Date(input.value);
-        selectedDate.setHours(0, 0, 0, 0);
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (selectedDate > today) {
-            showToast('⚠️ Payment date cannot be in the future', 'warning');
-            input.value = today.toISOString().split('T')[0];
-            updateFinePreview();
-            return false;
+        let message = 'Payment date cannot be in the future';
+        if (daysInFuture === 1) {
+            message = 'Payment date cannot be tomorrow';
+        } else if (daysInFuture > 1) {
+            message = `Payment date cannot be ${daysInFuture} days in the future`;
         }
         
-        return true;
+        showToast(`⚠️ ${message}`, 'warning');
+        input.value = now.toISOString().split('T')[0];
+        updateFinePreview();
+        return false;
     }
+    
+    return true;
+}
     
     // ============================================
     // PREVIEW SYSTEM
@@ -902,15 +914,17 @@
         
         // Date validation
         if (elements.paidDateInput?.value) {
-            const selectedDate = new Date(elements.paidDateInput.value);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            if (selectedDate > today) {
-                errors.push('Payment date cannot be in the future');
-                isValid = false;
+                const selectedDate = new Date(elements.paidDateInput.value);
+                const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                
+                const now = new Date();
+                const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                if (selectedDateOnly > todayOnly) {
+                    errors.push('Payment date cannot be in the future');
+                    isValid = false;
+                }
             }
-        }
         
         // Show errors if any
         if (errors.length > 0) {
